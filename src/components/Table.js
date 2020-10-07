@@ -1,48 +1,82 @@
-import React from 'react';
-import '../App.css';
+import React, {useState, useEffect} from 'react';
+import Employee from './Employee';
+import API from '../util/API';
+import Users from '../util/Users';
 
 function Table() {
-  return (
-    <main className="container">
-        <form>
-            <input class="form-control mr-sm-2" type="search" placeholder="Search for an Employee" aria-label="Search" />
-        </form>
-        <table class="table table-striped table-responsive-md">
-            <thead>
-                <tr>
-                    <th scope="col">Image</th>
-                    <th scope="col">Name</th>
-                    <th scope="col">Phone</th>
-                    <th scope="col">Email</th>
-                    <th scope="col">DOB</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr>
-                    <td className="align-middle"><img src="http://placehold.it/100x100" /></td>
-                    <td className="align-middle">Wendy Davidson</td>
-                    <td className="align-middle"><a href="tel:953-679-4398">953-679-4398</a></td>
-                    <td className="align-middle"><a href="mailto:wendy.davidson@example.com">wendy.davidson@example.com</a></td>
-                    <td className="align-middle">01/24/1994</td>
-                </tr>
-                <tr>
-                    <td className="align-middle"><img src="http://placehold.it/100x100" /></td>
-                    <td className="align-middle">Wendy Davidson</td>
-                    <td className="align-middle"><a href="tel:953-679-4398">953-679-4398</a></td>
-                    <td className="align-middle"><a href="mailto:wendy.davidson@example.com">wendy.davidson@example.com</a></td>
-                    <td className="align-middle">01/24/1994</td>
-                </tr>
-                <tr>
-                    <td className="align-middle"><img src="http://placehold.it/100x100" /></td>
-                    <td className="align-middle">Wendy Davidson</td>
-                    <td className="align-middle"><a href="tel:953-679-4398">953-679-4398</a></td>
-                    <td className="align-middle"><a href="mailto:wendy.davidson@example.com">wendy.davidson@example.com</a></td>
-                    <td className="align-middle">01/24/1994</td>
-                </tr>
-            </tbody>
-        </table>
-    </main>
-  );
-}
+      const [developerState, setDeveloperState] = useState({
+        users: [],
+        order: 'ascend',
+        filteredUsers: [],
+        headings: [
+          { name: 'Image' },
+          { name: 'Name' },
+          { name: 'Phone' },
+          { name: 'Email' },
+          { name: 'DOB' }
+        ]
+      });
+    
+      const sort = heading => {
+        if (developerState.order === 'descend') {
+            setDeveloperState({ order: 'ascend' })
+        } else {
+            setDeveloperState({ order: 'descend' })
+        }
+    
+        const compare = (a, b) => {
+          if (developerState.order === 'ascend') {
+            if (a[heading] === undefined) {
+              return 1;
+            } else if (b[heading] === undefined) {
+              return -1;
+            } else if (heading === 'name') {
+              return a[heading].first.localeCompare(b[heading].first);
+            } else {
+              return b[heading] - a[heading];
+            } 
+          } else {
+            if (a[heading] === undefined){
+              return 1;
+            } else if (b[heading] === undefined){
+              return -1;
+            } else if (heading === 'name') {
+              return b[heading].first.localeCompare(a[heading].first);
+            } else {
+              return b[heading]-  a[heading];
+            }
+          }
+        }
+        const sortedUsers = developerState.filteredUsers.sort(compare);
+        setDeveloperState({ ...developerState, filteredUsers: sortedUsers });
+      };
+   
+      const handleSearchChange = event => {
+        const filter = event.target.value;
+        const filteredList = developerState.users.filter(item => {
+          let values = item.name.first.toLowerCase();
+          return values.indexOf(filter.toLowerCase()) !== -1;
+        });
+    
+        setDeveloperState({ ...developerState, filteredUsers: filteredList });
+      };
 
-export default Table;
+      useEffect(() => {
+        API.getUsers().then(results => {
+          setDeveloperState({ ...developerState, users: results.data.results, filteredUsers: results.data.results });
+        });
+      }, []);
+    
+      return (
+        <Users.Provider value={{ developerState, handleSearchChange, sort }}>
+          <div className="data-area">
+            {developerState.filteredUsers.length > 0 
+            ? <Employee />
+            : <div></div>
+          }
+          </div>
+        </Users.Provider>
+      );
+    }
+    
+    export default Table;
